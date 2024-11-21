@@ -49,8 +49,6 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
       },
       onNavigationRequest: (request) {
         final uri = Uri.tryParse(request.url);
-        final prevent = onNavigationRequest?.call(uri) ?? false;
-        if (prevent) return NavigationDecision.prevent;
         return _decideNavigation(uri);
       },
     );
@@ -80,7 +78,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
     bool autoPlay = false,
     double? startSeconds,
     double? endSeconds,
-    bool Function(Uri?)? onNavigationRequest,
+    bool Function(Uri uri, String? videoId)? onNavigationRequest,
   }) {
     final controller = YoutubePlayerController(
       params: params,
@@ -116,7 +114,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
   late final WebViewController webViewController;
 
   /// Callback to handle navigation requests. Return `true` to prevent further navigation handling.
-  bool Function(Uri?)? onNavigationRequest;
+  bool Function(Uri uri, String? videoId)? onNavigationRequest;
 
   late final YoutubePlayerEventHandler _eventHandler;
   final Completer<void> _initCompleter = Completer();
@@ -663,6 +661,9 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return NavigationDecision.navigate;
     }
+
+    final prevent = onNavigationRequest?.call(uri, params['v']) ?? false;
+    if (prevent) return NavigationDecision.prevent;
 
     switch (featureName) {
       case 'emb_rel_pause':
