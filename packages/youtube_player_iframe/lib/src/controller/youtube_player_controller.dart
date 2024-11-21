@@ -27,6 +27,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
   YoutubePlayerController({
     this.params = const YoutubePlayerParams(),
     ValueChanged<YoutubeWebResourceError>? onWebResourceError,
+    this.onNavigationRequest,
     this.key,
   }) {
     _eventHandler = YoutubePlayerEventHandler(this);
@@ -48,6 +49,8 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
       },
       onNavigationRequest: (request) {
         final uri = Uri.tryParse(request.url);
+        final prevent = onNavigationRequest?.call(uri) ?? false;
+        if (prevent) return NavigationDecision.prevent;
         return _decideNavigation(uri);
       },
     );
@@ -77,8 +80,13 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
     bool autoPlay = false,
     double? startSeconds,
     double? endSeconds,
+    bool Function(Uri?)? onNavigationRequest,
   }) {
-    final controller = YoutubePlayerController(params: params, key: videoId);
+    final controller = YoutubePlayerController(
+      params: params,
+      key: videoId,
+      onNavigationRequest: onNavigationRequest,
+    );
 
     if (autoPlay) {
       controller.loadVideoById(
@@ -106,6 +114,9 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
   /// The [WebViewController] that drives the player
   @internal
   late final WebViewController webViewController;
+
+  /// Callback to handle navigation requests. Return `true` to prevent further navigation handling.
+  bool Function(Uri?)? onNavigationRequest;
 
   late final YoutubePlayerEventHandler _eventHandler;
   final Completer<void> _initCompleter = Completer();
