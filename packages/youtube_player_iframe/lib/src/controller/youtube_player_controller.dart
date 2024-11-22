@@ -78,7 +78,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
     bool autoPlay = false,
     double? startSeconds,
     double? endSeconds,
-    bool Function(Uri uri, String? videoId)? onNavigationRequest,
+    FutureOr<bool> Function(Uri uri, String? videoId)? onNavigationRequest,
   }) {
     final controller = YoutubePlayerController(
       params: params,
@@ -114,7 +114,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
   late final WebViewController webViewController;
 
   /// Callback to handle navigation requests. Return `true` to prevent further navigation handling.
-  bool Function(Uri uri, String? videoId)? onNavigationRequest;
+  FutureOr<bool> Function(Uri uri, String? videoId)? onNavigationRequest;
 
   late final YoutubePlayerEventHandler _eventHandler;
   final Completer<void> _initCompleter = Completer();
@@ -642,7 +642,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
     return videoStateStream.map((state) => state.position);
   }
 
-  NavigationDecision _decideNavigation(Uri? uri) {
+  Future<NavigationDecision> _decideNavigation(Uri? uri) async {
     if (uri == null) return NavigationDecision.prevent;
 
     final params = uri.queryParameters;
@@ -662,7 +662,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
       return NavigationDecision.navigate;
     }
 
-    final prevent = onNavigationRequest?.call(uri, params['v']) ?? false;
+    final prevent = await onNavigationRequest?.call(uri, params['v']) ?? false;
     if (prevent) return NavigationDecision.prevent;
 
     switch (featureName) {
