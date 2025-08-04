@@ -91,7 +91,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
   }) {
     final controller = YoutubePlayerController(
       params: params,
-      key: videoId,
+      key: videoId.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), ''),
       credentialless: credentialless,
       onNavigationRequest: onNavigationRequest,
     );
