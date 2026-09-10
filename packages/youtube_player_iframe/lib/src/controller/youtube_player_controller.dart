@@ -91,7 +91,7 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
   }) {
     final controller = YoutubePlayerController(
       params: params,
-      key: videoId.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), ''),
+      key: videoId,
       credentialless: credentialless,
       onNavigationRequest: onNavigationRequest,
     );
@@ -648,7 +648,8 @@ class YoutubePlayerController implements YoutubePlayerIFrameAPI {
       return NavigationDecision.navigate;
     }
 
-    final prevent = await onNavigationRequest?.call(uri, queryParams['v']) ?? false;
+    final prevent =
+        await onNavigationRequest?.call(uri, queryParams['v']) ?? false;
     if (prevent) return NavigationDecision.prevent;
 
     switch (featureName) {
