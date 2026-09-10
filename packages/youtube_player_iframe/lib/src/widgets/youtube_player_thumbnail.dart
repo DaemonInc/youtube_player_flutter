@@ -39,6 +39,7 @@ class YoutubePlayerThumbnail extends StatefulWidget {
     this.enableFullScreenOnVerticalDrag = true,
     this.autoFullScreen = true,
     this.playIcon,
+    this.active = false,
   });
 
   /// The controller for the player.
@@ -81,16 +82,27 @@ class YoutubePlayerThumbnail extends StatefulWidget {
   /// Defaults to a red circular play button.
   final Widget? playIcon;
 
+  /// Replaces the thumbnail with the player and starts playback, as if the
+  /// thumbnail had been tapped.
+  ///
+  /// Once active the widget stays active; setting this back to false does not
+  /// return to the thumbnail.
+  ///
+  /// Defaults to false.
+  final bool active;
+
   @override
   State<YoutubePlayerThumbnail> createState() => _YoutubePlayerThumbnailState();
 }
 
 class _YoutubePlayerThumbnailState extends State<YoutubePlayerThumbnail> {
-  bool _playerActive = false;
+  bool _tapped = false;
   StreamSubscription<YoutubePlayerValue>? _playSubscription;
 
-  void _activate() {
-    setState(() => _playerActive = true);
+  bool get _playerActive => _tapped || widget.active;
+
+  void _startPlayback() {
+    widget.controller.playVideo();
     _playSubscription = widget.controller.stream.listen((value) {
       if (value.playerState == PlayerState.cued) {
         _playSubscription?.cancel();
@@ -98,6 +110,23 @@ class _YoutubePlayerThumbnailState extends State<YoutubePlayerThumbnail> {
         widget.controller.playVideo();
       }
     });
+  }
+
+  void _activate() {
+    setState(() => _tapped = true);
+    _startPlayback();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _startPlayback();
+  }
+
+  @override
+  void didUpdateWidget(YoutubePlayerThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active && !_tapped) _startPlayback();
   }
 
   @override
@@ -121,35 +150,37 @@ class _YoutubePlayerThumbnailState extends State<YoutubePlayerThumbnail> {
 
     final videoId = widget.controller.key;
 
-    return GestureDetector(
-      onTap: () {
-        widget.controller.playVideo();
-        _activate();
-      },
-      child: AspectRatio(
-        aspectRatio: widget.aspectRatio,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (videoId != null)
-              Image.network(
-                YoutubePlayerController.getThumbnail(
-                  videoId: videoId,
-                  quality: widget.thumbnailQuality,
-                  format: widget.thumbnailFormat,
-                ),
-                webHtmlElementStrategy: .prefer,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) => progress == null
-                    ? child
-                    : ColoredBox(color: Theme.of(context).colorScheme.surface),
-                errorBuilder: (_, _, _) =>
-                    ColoredBox(color: Theme.of(context).colorScheme.surface),
-              )
-            else
-              ColoredBox(color: Theme.of(context).colorScheme.surface),
-            Center(child: widget.playIcon ?? const _DefaultPlayIcon()),
-          ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: _activate,
+        child: AspectRatio(
+          aspectRatio: widget.aspectRatio,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (videoId != null)
+                Image.network(
+                  YoutubePlayerController.getThumbnail(
+                    videoId: videoId,
+                    quality: widget.thumbnailQuality,
+                    format: widget.thumbnailFormat,
+                  ),
+                  webHtmlElementStrategy: .prefer,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : ColoredBox(
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
+                  errorBuilder: (_, _, _) =>
+                      ColoredBox(color: Theme.of(context).colorScheme.surface),
+                )
+              else
+                ColoredBox(color: Theme.of(context).colorScheme.surface),
+              Center(child: widget.playIcon ?? const _DefaultPlayIcon()),
+            ],
+          ),
         ),
       ),
     );
